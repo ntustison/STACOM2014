@@ -14,7 +14,7 @@
 \usepackage{listings}
 \usepackage{color}
 \usepackage{multirow,booktabs,ctable,array}
-
+\usepackage{dcolumn}
 
     \definecolor{listcomment}{rgb}{0.0,0.5,0.0}
     \definecolor{listkeyword}{rgb}{0.0,0.0,0.5}
@@ -22,6 +22,8 @@
     \definecolor{listlightgray}{gray}{0.955}
     \definecolor{listwhite}{gray}{1.0}
 
+
+\newcolumntype{d}[1]{D{.}{.}{-1} }
 
 %\floatname{algorithm}{Procedure}
 \renewcommand{\algorithmicrequire}{\textbf{Input:}}
@@ -72,11 +74,28 @@ the STACOM 2014 workshop committee organized a motion correction challenge
 to be held in conjunction with MICCAI 2014.
 
 We describe the submission of our non-rigid motion correction approach
-below which is both publicly available and open source.  This facilitates 
+below which is both publicly available and open source.%
+\footnote{
+https://github.com/stnava/ANTs
+}
+This facilitates 
 reproducibility for other researchers who wish to investigate the methods
 proposed and perhaps formulate configurations which improve existing
 performance levels.
-\section{Methods}
+
+
+\section{Materials and Methods}
+
+\subsection{Evaluation Data}
+
+As described by the challenge organizers:
+\begin{quote}
+{\it
+The evaluation dataset consists of 10 cases from two centres: the University of Utah and University of Auckland. For each case, a single short axis slice time series at rest and at stress is provided. The Utah datasets were acquired using a saturation-recovery radial turboFLASH sequence at rest and during adenosine infusion (140 ?g/kg/min), as described in \cite{dibella2012}. Contrast was 5 cc/s injection of Multihance (Gd-BOPTA) at 0.02 mmol/kg for the rest and 0.03 mmol/kg for the stress. Four of these subjects have known coronary artery disease. The Auckland cases were acquired using a saturation-recovery Cartesian turboFLASH sequence at rest and during adenosine infusion (140 $\mu$g/kg/min). Contrast was 0.04 mmol/kg Omniscan (gadodiamide). None of the Auckland cases have overt coronary disease.  Expert-drawn contours only at a reference frame, chosen when contrast is present in both ventricles, will be provided to the participants. 
+}
+\end{quote}
+
+\subsection{Preprocessing and Image Registration}
 
 We used the Advanced Normalization Tools (ANTs)
 package as the basis of our motion correction estimation framework as it provides 
@@ -92,7 +111,12 @@ the lung-based EMPIRE10 (pulmonary CT) \cite{murphy2011} and BRATS2013
 Normalization to the reference frame employs a pairwise registration strategy
 whereby each image is registered to its successive temporal neighbor using 
 a recently developed SyN variation where the smoothing kernel is based on 
-B-splines \cite{tustison2013}.  One of the benefits of SyN is that it yields both 
+B-splines \cite{tustison2013}.  As originally formulated, the SyN transform
+is an explicit symmetrization of the well-known Large Deformation Diffeomorphic 
+Metric Mapping (LDDMM) framework \cite{beg2005} which computes the geodesic 
+solution between image pairs in the space of diffeomorphisms \cite{dupuis1998}
+which are differentiable mappings which have differentiable inverses.
+One of the benefits of LDDMM (and SyN) is that it yields both 
 the forward and inverse transforms between images $I$ and $J$, which we denote
 as $I \underset{b}{\leftrightsquigarrow} J$ (where `$b$' denotes ``B-spline SyN'').
 Note that the image of the last time frame is registered to the image at the 
@@ -152,7 +176,15 @@ data is found in Figure \ref{fig:subject9}.
 
 
 Each of these three sets of derived images are used to drive a deformable B-spline SyN
-pairwise registration for each temporal neighboring image pair.
+pairwise registration for each temporal neighboring image pair where a weighted 
+minimization of the three similarity metrics produced the resulting correspondence.
+For these data, we used equal weighting for each image pair/similarity metric 
+which was based on a very limited heuristical assessment of the data. Investigation into
+relative weighting schemes might increase performance levels particularly for varying
+data qualities.  For example, given less noisy data, decreasing the weighting of the 
+contribution of the SUSAN-based image pairing might be helpful as noise would be less of
+a factor.
+
 This process is most clearly described by the {\tt antsRegistration} program call given in Listing 
 \ref{listing:antsRegistration}.%
 \footnote{
@@ -169,12 +201,17 @@ of each individual set and the need to balance an aggressive alignment of strong
 while minimizing displacements caused by incorrect correspondences.  The N4 bias corrected
 images were incorporated into the motion correction strategy since they were closest
 to the original imaging data. Given the relative amount of noise, we used a neighborhood
-CC metric (window radius = 6 voxels) to help mitigate the noise issue for these data which
-is the default similarity metric choice used in ANTs-based image registration \cite{avants2008}.  In
-contrast, as SUSAN is meant to minimize noise corruption, we used the more aggressive
-Demons metric \cite{thirion1998} for the SUSAN and Laplacian image pairs.  We used
-equal weighting for each image pair/similarity metric although investigation into
-relative weighting schemes might increase performance levels.  A multi-resolution approach
+cross correlation (CC) metric (window radius = 6 voxels) which evaluates the linear
+intensity relationship between neighborhood regions at corresponding points in the image 
+pair.  This metric
+is the default similarity metric choice used in ANTs-based image registration \cite{avants2008}
+and helps mitigate the effects of noise.  In
+contrast, because of the smoothing effects of SUSAN and the Laplacian filtering, 
+we used the more aggressive Demons metric \cite{thirion1998} 
+which can be viewed as a second order minimization of the sum-of-squared differences
+(SSD) objective function.  
+
+A multi-resolution approach
 consisting of three levels with each successive level corresponding to double the resolution
 of the previous level was used with varying isotropic smoothing used at each level.  For
 specific parameter choices, we refer the reader to Listing 
@@ -237,7 +274,6 @@ the number of transforms specified.
 \section{Evaluation}
 
 As described by the challenge organizers:
-
 \begin{quote}
 {\it
 We will validate the motion correction algorithms based on flow indices. 
@@ -263,7 +299,53 @@ http://www.cardiacatlas.org/web/stacom2014/moco-validation
 Implementation of the validation methodology was provided by the workshop 
 organizers which were applied to all motion-corrected 10 gated image sets and the 
 single ungated data set.  The resulting time curves and model fits are
-given in Figures \ref{fig:gated1}, \ref{fig:gated2}, and \ref{fig:ungated}.
+given in Figures \ref{fig:gated1}, \ref{fig:gated2}, and \ref{fig:ungated} with
+the $K^{trans}$ values given in Tables \ref{table:ktrans}.
+
+\begin{table}
+  \centering
+  \caption{$K^{trans}$ values for all data for all 6 ROIs.}
+  \label{table:ktrans}
+  \begin{tabular*}{\textwidth}{@{\extracolsep{\fill} } c d{4} d{4} d{4} d{4} d{4} d{4}}
+    \toprule
+	{} & \multicolumn{1}{c}{ROI$_1$} & \multicolumn{1}{c}{ROI$_2$} & 
+	     \multicolumn{1}{c}{ROI$_3$} & \multicolumn{1}{c}{ROI$_4$} & 
+	     \multicolumn{1}{c}{ROI$_5$} & \multicolumn{1}{c}{ROI$_6$} \\
+	\midrule
+	{\bf MoCo\_01} (rest) & 0.7646 & 0.793 & 0.6472 & 0.6223 & 1.1396 & 0.6169 \\
+	{\bf MoCo\_01} (stress) & 2.991 & 3.3591 & 3.3946 & 3.8864 & 3.6427 & 2.9233 \\
+	\midrule
+	{\bf MoCo\_02} (rest) & 1.26 & 0.8393 & 0.8038 & 0.8026 & 0.621 & 0.9659 \\
+	{\bf MoCo\_02} (stress) & 3.6184 & 4.7307 & 2.4689 & 2.1684 & 2.0884 & 4.6189 \\
+	\midrule
+	{\bf MoCo\_03} (rest) & 1.3238 & 1.0138 & 1.9537 & 1.4278 & 0.6698 & 1.2323 \\
+	{\bf MoCo\_03} (stress) & 4.6317 & 4.482 & 2.5719 & 2.2236 & 1.2169 & 3.3639 \\
+	\midrule
+	{\bf MoCo\_04} (rest) & 2.4826 & 1.958 & 1.7667 & 2.0848 & 3.0735 & 2.516 \\
+	{\bf MoCo\_04} (stress) & 6.6083 & 10.1963 & 9.2774 & 10.0296 & 10.7357 & 8.875 \\
+	\midrule
+	{\bf MoCo\_05} (rest) & 1.6678 & 1.4952 & 0.8095 & 0.8683 & 1.1663 & 1.318\\
+	{\bf MoCo\_05} (stress) & 2.4283 & 2.6987 & 2.0908 & 1.9775 & 2.3872 & 3.0467 \\
+	\midrule
+	{\bf MoCo\_06} (rest) & 0.9946 & 1.2878 & 1.1367 & 0.7262 & 0.8156 & 0.865\\
+	{\bf MoCo\_06} (stress) & 2.1543 & 2.6292 & 2.1322 & 2.59 & 1.4002 & 1.4648 \\
+	\midrule
+	{\bf MoCo\_07} (rest) & 0.6009 & 0.5397 & 0.4214 & 0.2904 & 0.8107 & 1.234\\
+	{\bf MoCo\_07} (stress) & 2.8381 & 2.2815 & 1.8141 & 1.7029 & 2.7065 & 2.8503 \\
+	\midrule
+	{\bf MoCo\_08} (rest) & 1.0315 & 0.8754 & 0.7959 & 0.7106 & 0.9726 & 1.0769 \\
+	{\bf MoCo\_08} (stress) & 3.1103 & 2.9066 & 2.2222 & 2.369 & 2.4781 & 1.796 \\
+	\midrule
+	{\bf MoCo\_09} (rest) & 1.0073 & 0.8589 & 0.7194 & 0.8689 & 1.1375 & 1.1258 \\
+	{\bf MoCo\_09} (stress) & 1.939 & 0.9883 & 1.0515 & 1.6527 & 1.9416 & 2.2943 \\
+	\midrule
+	{\bf MoCo\_10} (rest) & 2.734 & 2.3579 & 2.2832 & 2.3316 & 2.822 & 2.743\\
+	{\bf MoCo\_10} (stress) & 2.2161 & 3.8051 & 2.9618 & 2.234 & 5.6507 & 2.9052 \\
+	\midrule
+	{\bf Ungated} &	2.3471 & 3.0672 & 2.6664 & 3.7773 &	3.5338 & 2.7093 \\
+	\bottomrule
+  \end{tabular*}
+\end{table}
 
 \begin{figure}
  \makebox[\textwidth][c]{
@@ -372,20 +454,46 @@ given in Figures \ref{fig:gated1}, \ref{fig:gated2}, and \ref{fig:ungated}.
 \end{figure}
 
 
-
 \section{Discussion and Conclusions}
-Although an improvement over the non-corrected image data, our motion
-correction technique is far from being a definitive solution. Confounds
-such as noise and lack of contrast caused errors during the alignment
-optimization over all subjects.  This was particularly the case for 
-the ungated data set for which the same parameters were applied as with the 
-gated data.  Considering the different motion characteristics between the two
+Based on visual assessment, our correction motion method seems to work
+well. However, such qualitative verification is far from ideal as the
+true measure of its utility is tied directly to its ability to produce useful
+clinical measures (hence, the motivation for the validation framework provided 
+by the organizers).  Comparison of our results with results produced by other 
+teams will certainly prove useful in assessing the proposed methods. 
+
+Confounds such as noise, through-plane motion, and lack of contrast caused errors 
+during the alignment optimization over all subjects.  For example,
+in the ungated case shown in Figure \ref{fig:moco_ungated} there is
+definite motion between frames $t = 77$ and $t = 78$ (wall thinning)
+which is not captured by our methodology.
+\begin{figure}
+  \centering
+  \begin{tabular}{ccc}
+    \includegraphics[width=40mm]{Figures/MoCo_Ungated_slice77.png} &
+    \includegraphics[width=40mm]{Figures/MoCo_Ungated_slice78.png} &
+    \includegraphics[width=40mm]{Figures/MoCo_Ungated_slice85.png} \\
+    $t = 77$ & $t = 78$ & $t = 85$ \\
+  \end{tabular}
+  \caption{Wall thinning between $t = 77$ and $t = 78$ not captured by 
+           the proposed ANTs registration configuration.  For completeness,
+           we show the reference image ($t=85$).
+          }
+  \label{fig:moco_ungated}
+\end{figure}
+This is to be expected given the conservative approach to
+minimize the effects of noise.  
+However, considering the different motion characteristics between the two
 types of data, the heuristically-chosen optimal parameters selected for the
-latter might be suboptimal for the former.  Further investigation with 
+gated data might be suboptimal for the ungated data.  Further investigation with 
 additional ungated data would be necessary for tuning a different, targeted set
 of parameters.
 
-The general principle of incorporating prior knowledge 
+One other major potential issue with our method is the dependency on 
+good pairwise normalizations to be able to infer correct correspondences
+back to the reference frame.  Any error in the chain of transforms 
+will be propagated in normalizing a particular image back to the 
+reference frame. The general principle of incorporating prior knowledge 
 to improve solution strategies is definitely an avenue we are pursuing
 for future work.  One extension we are currently investigating is the 
 use of optimal shape and intensity templates derived from the subject
