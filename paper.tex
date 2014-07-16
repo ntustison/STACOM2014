@@ -57,8 +57,8 @@ motion correction of dynamic contrast myocardial perfusion
 MRI.  Our submission is based on the publicly available Advanced
 Normalization Tools (ANTs) specifically tailored for this problem
 domain.  We provide a brief description with actual code calls
-to facilitate reproducibility.  Time plots based on the
-validation methodology of \cite{pack2010} are also illustrated
+to facilitate reproducibility.  Time plots and $K^{trans}$ values,
+based on the validation methodology of \cite{pack2010}, are also provided
 to determine clinically relevant performance levels.
 \keywords{ANTs, image registration, motion estimation, myocardial perfusion}
 \end{abstract}
@@ -91,7 +91,7 @@ performance levels.
 As described by the challenge organizers:
 \begin{quote}
 {\it
-The evaluation dataset consists of 10 cases from two centres: the University of Utah and University of Auckland. For each case, a single short axis slice time series at rest and at stress is provided. The Utah datasets were acquired using a saturation-recovery radial turboFLASH sequence at rest and during adenosine infusion (140 ?g/kg/min), as described in \cite{dibella2012}. Contrast was 5 cc/s injection of Multihance (Gd-BOPTA) at 0.02 mmol/kg for the rest and 0.03 mmol/kg for the stress. Four of these subjects have known coronary artery disease. The Auckland cases were acquired using a saturation-recovery Cartesian turboFLASH sequence at rest and during adenosine infusion (140 $\mu$g/kg/min). Contrast was 0.04 mmol/kg Omniscan (gadodiamide). None of the Auckland cases have overt coronary disease.  Expert-drawn contours only at a reference frame, chosen when contrast is present in both ventricles, will be provided to the participants. 
+The evaluation dataset consists of 10 cases from two centres: the University of Utah and University of Auckland. For each case, a single short axis slice time series at rest and at stress is provided. The Utah datasets were acquired using a saturation-recovery radial turboFLASH sequence at rest and during adenosine infusion (140 ?g/kg/min), as described in \cite{dibella2012}. Contrast was 5 cc/s injection of Multihance (Gd-BOPTA) at 0.02 mmol/kg for the rest and 0.03 mmol/kg for the stress. Four of these subjects have known coronary artery disease. The Auckland cases were acquired using a saturation-recovery Cartesian turboFLASH sequence at rest and during adenosine infusion (140 $\mu$g/kg/min). Contrast was 0.04 mmol/kg Omniscan (gadodiamide). None of the Auckland cases have overt coronary disease.  Expert-drawn contours only at a reference frame, chosen when contrast is present in both ventricles, were provided to the participants. 
 }
 \end{quote}
 
@@ -114,8 +114,8 @@ a recently developed SyN variation where the smoothing kernel is based on
 B-splines \cite{tustison2013}.  As originally formulated, the SyN transform
 is an explicit symmetrization of the well-known Large Deformation Diffeomorphic 
 Metric Mapping (LDDMM) framework \cite{beg2005} which computes the geodesic 
-solution between image pairs in the space of diffeomorphisms \cite{dupuis1998}
-which are differentiable mappings which have differentiable inverses.
+solution between image pairs in the space of diffeomorphisms, i.e. 
+differentiable mappings which have differentiable inverses \cite{dupuis1998}.
 One of the benefits of LDDMM (and SyN) is that it yields both 
 the forward and inverse transforms between images $I$ and $J$, which we denote
 as $I \underset{b}{\leftrightsquigarrow} J$ (where `$b$' denotes ``B-spline SyN'').
@@ -195,7 +195,7 @@ syntax.  However, for this specific problem domain, it was found that such pre-d
 alignment steps were unnecessary.
 }  
 Each fixed and moving image pair was histogram
-matched \cite{nyul2000} and intensity-truncated to remove extreme values.  The
+matched \cite{nyul2000} and intensity-truncated to b extreme values.  The
 choice of similarity metric for each image pair was motivated by the characteristics
 of each individual set and the need to balance an aggressive alignment of strong image features 
 while minimizing displacements caused by incorrect correspondences.  The N4 bias corrected
