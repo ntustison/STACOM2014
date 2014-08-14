@@ -195,7 +195,7 @@ syntax.  However, for this specific problem domain, it was found that such pre-d
 alignment steps were unnecessary.
 }  
 Each fixed and moving image pair was histogram
-matched \cite{nyul2000} and intensity-truncated to b extreme values.  The
+matched \cite{nyul2000} and intensity-truncated to remove extreme values.  The
 choice of similarity metric for each image pair was motivated by the characteristics
 of each individual set and the need to balance an aggressive alignment of strong image features 
 while minimizing displacements caused by incorrect correspondences.  The N4 bias corrected
@@ -239,7 +239,7 @@ specific parameter choices, we refer the reader to Listing
         numbersep = 6pt,
         numberstyle={\ttfamily\color{listnumbers}},
         tabsize = 2,
-        language=c++,
+        language=bash,
         floatplacement=!h,
         caption={\small {\tt antsRegistration} call used for the pairwise registration.  
         },
